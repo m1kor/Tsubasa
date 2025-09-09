@@ -76,22 +76,26 @@ namespace Tsubasa
 
         beginMode2D();
 
-        // Collect and batch sprites by texture and shader for instanced rendering
-        struct SpriteBatchKey {
+        // Collect and batch sprites by texture and material for instanced rendering
+        struct SpriteBatchKey
+        {
             unsigned int textureId;
-            unsigned int shaderId;
-            
-            bool operator==(const SpriteBatchKey& other) const {
-                return textureId == other.textureId && shaderId == other.shaderId;
+            std::shared_ptr<SpriteMaterial> material;
+
+            bool operator==(const SpriteBatchKey &other) const
+            {
+                return textureId == other.textureId && material == other.material;
             }
         };
-        
-        struct SpriteBatchKeyHash {
-            std::size_t operator()(const SpriteBatchKey& k) const {
-                return std::hash<unsigned int>()(k.textureId) ^ (std::hash<unsigned int>()(k.shaderId) << 1);
+
+        struct SpriteBatchKeyHash
+        {
+            std::size_t operator()(const SpriteBatchKey &k) const
+            {
+                return std::hash<unsigned int>()(k.textureId) ^ (std::hash<std::shared_ptr<SpriteMaterial>>()(k.material) << 1);
             }
         };
-        
+
         std::unordered_map<SpriteBatchKey, std::vector<SpriteInstanceData>, SpriteBatchKeyHash> spriteBatches;
 
         if (client)
@@ -99,17 +103,16 @@ namespace Tsubasa
             client->Root->Traverse<SpriteRenderer>([&spriteBatches](const std::shared_ptr<SpriteRenderer> &spriteRenderer)
                                                    {
             if (spriteRenderer->Enabled && spriteRenderer->Sprite != nullptr && 
-                spriteRenderer->Sprite->GetTexture() != nullptr && spriteRenderer->Sprite->GetShader() != nullptr)
+                spriteRenderer->Sprite->GetTexture() != nullptr)
             {
                 unsigned int textureId = spriteRenderer->Sprite->GetTexture()->texture.id;
-                unsigned int shaderId = spriteRenderer->Sprite->GetShader()->GetShaderID();
                 auto entity = spriteRenderer->GetEntity();
                 if (!entity) return;
                 Vector3 worldPos = entity->GetWorldPosition();
                 Vector3 scale = entity->GetWorldScale();
                 float rotation = entity->GetWorldRotation().Euler().z * RAD2DEG;
                 
-                SpriteBatchKey key{textureId, shaderId};
+                SpriteBatchKey key{textureId, spriteRenderer->Sprite};
                 spriteBatches[key].push_back(SpriteInstanceData{
                     worldPos,
                     scale, 
@@ -120,10 +123,10 @@ namespace Tsubasa
             } });
         }
 
-        // Render each texture+shader batch as instanced quads
+        // Render each texture+material batch as instanced quads
         for (const auto &batch : spriteBatches)
         {
-            renderSpriteBatch(batch.first.textureId, batch.first.shaderId, batch.second);
+            renderSpriteBatch(batch.first.textureId, batch.first.material, batch.second);
         }
 
         endMode2D();
@@ -302,25 +305,27 @@ namespace Tsubasa
         }
     }
 
-    void RaylibRenderSystem::renderSpriteBatch(unsigned int textureId, unsigned int shaderId, const std::vector<SpriteInstanceData> &instances)
+    void RaylibRenderSystem::renderSpriteBatch(unsigned int textureId, std::shared_ptr<SpriteMaterial> material, const std::vector<SpriteInstanceData> &instances)
     {
         if (instances.empty())
             return;
 
-        // Get shader from first instance and enable it
-        const auto &firstInstance = instances[0];
-        auto shader = firstInstance.Renderer->Sprite->GetShader();
+        // Get shader and apply material-specific uniforms
+        auto shader = material->GetShader();
         if (shader && shader->IsValid())
         {
             rlSetShader(shader->shader.id, shader->shader.locs);
+
+            // Apply material-specific uniforms
+            material->applyUniforms();
         }
 
         // Set texture once for entire batch
         rlSetTexture(textureId);
 
-        // Get texture dimensions from the first instance for UV calculations
-        float textureWidth = (float)firstInstance.Renderer->Sprite->GetTexture()->texture.width;
-        float textureHeight = (float)firstInstance.Renderer->Sprite->GetTexture()->texture.height;
+        // Get texture dimensions from the material for UV calculations
+        float textureWidth = (float)material->GetTexture()->texture.width;
+        float textureHeight = (float)material->GetTexture()->texture.height;
 
         // Begin batch rendering
         rlBegin(RL_QUADS);
@@ -379,7 +384,7 @@ namespace Tsubasa
 
         rlEnd();
         rlSetTexture(0);
-        
+
         // Disable shader
         rlSetShader(rlGetShaderIdDefault(), rlGetShaderLocsDefault());
     }

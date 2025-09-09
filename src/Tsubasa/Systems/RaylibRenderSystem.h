@@ -22,6 +22,7 @@ namespace Tsubasa
 
     class MeshRenderer;
     class SpriteRenderer;
+    class SpriteMaterial;
 
     class RaylibRenderSystem : public System
     {
@@ -42,6 +43,6 @@ namespace Tsubasa
         void endMode2D();
         void renderModel(std::shared_ptr<MeshRenderer> meshRenderer);
         void renderSprite(std::shared_ptr<SpriteRenderer> spriteRenderer);
-        void renderSpriteBatch(unsigned int textureId, unsigned int shaderId, const std::vector<struct SpriteInstanceData> &instances);
+        void renderSpriteBatch(unsigned int textureId, std::shared_ptr<SpriteMaterial> material, const std::vector<struct SpriteInstanceData> &instances);
     };
 }

@@ -32,59 +32,79 @@ namespace Tsubasa
         this->shader = shader ? shader : Shader::CreateDefault();
     }
 
-    void SpriteMaterial::SetFloat(const std::string& name, float value)
+    void SpriteMaterial::SetFloat(const std::string &name, float value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetInt(const std::string& name, int value)
+    void SpriteMaterial::SetInt(const std::string &name, int value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetVector2(const std::string& name, const Vector2& value)
+    void SpriteMaterial::SetVector2(const std::string &name, const Vector2 &value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetVector3(const std::string& name, const Vector3& value)
+    void SpriteMaterial::SetVector3(const std::string &name, const Vector3 &value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetVector4(const std::string& name, const Vector4& value)
+    void SpriteMaterial::SetVector4(const std::string &name, const Vector4 &value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetMatrix4x4(const std::string& name, const Matrix4x4& value)
+    void SpriteMaterial::SetMatrix4x4(const std::string &name, const Matrix4x4 &value)
     {
-        if (shader)
-        {
-            shader->SetUniform(name, value);
-        }
+        uniforms[name] = value;
     }
 
-    void SpriteMaterial::SetTexture(const std::string& name, std::shared_ptr<Texture2D> texture, int slot)
+    void SpriteMaterial::SetTexture(const std::string &name, std::shared_ptr<Texture2D> texture, int slot)
     {
-        if (shader)
+        uniforms[name] = std::make_pair(texture, slot);
+    }
+
+    void SpriteMaterial::applyUniforms() const
+    {
+        if (!shader)
+            return;
+
+        for (const auto &[name, value] : uniforms)
         {
-            shader->SetUniform(name, texture, slot);
+            std::visit([&](const auto &v)
+                       {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, float>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, int>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, Vector2>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, Vector3>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, Vector4>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, Matrix4x4>)
+                {
+                    shader->SetUniform(name, v);
+                }
+                else if constexpr (std::is_same_v<T, std::pair<std::shared_ptr<Texture2D>, int>>)
+                {
+                    shader->SetUniform(name, v.first, v.second);
+                } }, value);
         }
     }
 }
