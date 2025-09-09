@@ -2,7 +2,9 @@
 #include <Tsubasa/Core/Graphics/Texture2D.h>
 #include <raylib/raylib.h>
 #include <raylib/rlgl.h>
+#include <raylib/raymath.h>
 #include <iostream>
+#include <typeindex>
 
 namespace Tsubasa
 {
@@ -33,7 +35,7 @@ namespace Tsubasa
     }
 
     Shader::Shader(Shader &&other) noexcept
-        : shader(other.shader), uniformLocations(std::move(other.uniformLocations))
+        : shader(other.shader), uniformLocations(std::move(other.uniformLocations)), uniformTypes(std::move(other.uniformTypes))
     {
         other.shader = {0};
     }
@@ -48,6 +50,7 @@ namespace Tsubasa
             }
             shader = other.shader;
             uniformLocations = std::move(other.uniformLocations);
+            uniformTypes = std::move(other.uniformTypes);
             other.shader = {0};
         }
         return *this;
@@ -60,6 +63,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(float)));
             SetShaderValue(shader, location, &value, SHADER_UNIFORM_FLOAT);
         }
     }
@@ -71,6 +75,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(int)));
             SetShaderValue(shader, location, &value, SHADER_UNIFORM_INT);
         }
     }
@@ -82,6 +87,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(Vector2)));
             float values[2] = {value.x, value.y};
             SetShaderValue(shader, location, values, SHADER_UNIFORM_VEC2);
         }
@@ -94,6 +100,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(Vector3)));
             float values[3] = {value.x, value.y, value.z};
             SetShaderValue(shader, location, values, SHADER_UNIFORM_VEC3);
         }
@@ -106,6 +113,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(Vector4)));
             float values[4] = {value.x, value.y, value.z, value.w};
             SetShaderValue(shader, location, values, SHADER_UNIFORM_VEC4);
         }
@@ -118,6 +126,7 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(Matrix4x4)));
             SetShaderValueMatrix(shader, location, *reinterpret_cast<const ::Matrix *>(&value));
         }
     }
@@ -129,21 +138,24 @@ namespace Tsubasa
         int location = getUniformLocation(name);
         if (location >= 0)
         {
+            uniformTypes.insert_or_assign(name, std::type_index(typeid(std::shared_ptr<Texture2D>)));
             SetShaderValueTexture(shader, location, texture->texture);
         }
     }
 
-    int Shader::getUniformLocation(const std::string &name)
+    void Shader::ResetUniforms()
     {
-        auto it = uniformLocations.find(name);
-        if (it != uniformLocations.end())
+        if (!IsValid())
+            return;
+
+        // Reset all tracked uniforms to their default values
+        for (const auto &[name, type] : uniformTypes)
         {
-            return it->second;
+            resetUniformToDefault(name, type);
         }
 
-        int location = GetShaderLocation(shader, name.c_str());
-        uniformLocations[name] = location;
-        return location;
+        // Clear tracking since uniforms are now reset
+        uniformTypes.clear();
     }
 
     // Static factory methods for common 2D shaders
@@ -345,5 +357,57 @@ void main()
 )";
 
         return std::make_shared<Shader>(vertexShader, fragmentShader);
+    }
+
+    int Shader::getUniformLocation(const std::string &name)
+    {
+        auto it = uniformLocations.find(name);
+        if (it != uniformLocations.end())
+        {
+            return it->second;
+        }
+
+        int location = GetShaderLocation(shader, name.c_str());
+        uniformLocations[name] = location;
+        return location;
+    }
+
+    void Shader::resetUniformToDefault(const std::string &name, std::type_index type)
+    {
+        int location = getUniformLocation(name);
+        if (location < 0)
+            return;
+
+        if (type == std::type_index(typeid(float)))
+        {
+            float defaultValue = 0.0f;
+            SetShaderValue(shader, location, &defaultValue, SHADER_UNIFORM_FLOAT);
+        }
+        else if (type == std::type_index(typeid(int)))
+        {
+            int defaultValue = 0;
+            SetShaderValue(shader, location, &defaultValue, SHADER_UNIFORM_INT);
+        }
+        else if (type == std::type_index(typeid(Vector2)))
+        {
+            float defaultValue[2] = {0.0f, 0.0f};
+            SetShaderValue(shader, location, defaultValue, SHADER_UNIFORM_VEC2);
+        }
+        else if (type == std::type_index(typeid(Vector3)))
+        {
+            float defaultValue[3] = {0.0f, 0.0f, 0.0f};
+            SetShaderValue(shader, location, defaultValue, SHADER_UNIFORM_VEC3);
+        }
+        else if (type == std::type_index(typeid(Vector4)))
+        {
+            float defaultValue[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // Default to white for colors
+            SetShaderValue(shader, location, defaultValue, SHADER_UNIFORM_VEC4);
+        }
+        else if (type == std::type_index(typeid(Matrix4x4)))
+        {
+            Matrix identity = MatrixIdentity();
+            SetShaderValueMatrix(shader, location, identity);
+        }
+        // Note: Texture2D uniforms don't need resetting as textures are managed externally
     }
 }

@@ -72,6 +72,9 @@ namespace Tsubasa
         if (!shader)
             return;
 
+        // Reset shader uniforms to prevent contamination from previous materials
+        shader->ResetUniforms();
+
         for (const auto &[name, value] : uniforms)
         {
             std::visit([&](const auto &v)

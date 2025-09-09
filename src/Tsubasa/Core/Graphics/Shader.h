@@ -8,6 +8,8 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <typeindex>
+#include <optional>
 
 namespace Tsubasa
 {
@@ -38,6 +40,9 @@ namespace Tsubasa
         void SetUniform(const std::string& name, const Matrix4x4& value);
         void SetUniform(const std::string& name, std::shared_ptr<Texture2D> texture, int slot = 0);
 
+        // Reset all uniforms to their default values
+        void ResetUniforms();
+
         // Get the Raylib shader ID
         unsigned int GetShaderID() const { return shader.id; }
 
@@ -53,8 +58,12 @@ namespace Tsubasa
     private:
         ::Shader shader;
         std::unordered_map<std::string, int> uniformLocations;
+        std::unordered_map<std::string, std::type_index> uniformTypes; // Track uniform types for proper reset
 
         // Get or cache uniform location
         int getUniformLocation(const std::string& name);
+        
+        // Reset a specific uniform to its default value
+        void resetUniformToDefault(const std::string& name, std::type_index type);
     };
 }
