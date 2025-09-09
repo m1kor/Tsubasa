@@ -1,11 +1,12 @@
 #include <raylib/raylib.h>
 #include <Tsubasa/Application.h>
+#include <Tsubasa/Assets/Texture2D.h>
 #include <Tsubasa/Components/Camera.h>
 #include <Tsubasa/Components/MeshRenderer.h>
+#include <Tsubasa/Components/SpriteRenderer.h>
 #include <Tsubasa/Systems/RaylibRenderSystem.h>
 #include <memory>
 #include <iostream>
-#include <raylib/raylib.h>
 
 using namespace std;
 
@@ -24,19 +25,20 @@ public:
         rotation = Tsubasa::Quaternion::Identity;
     }
 
-    void OnUpdate(float timeDelta) override 
+    void OnUpdate(float timeDelta) override
     {
-        if (active)
+        auto entity = GetEntity();
+        if (entity && active)
         {
-            Entity->Translate(delta * timeDelta);
-            Entity->Rotate(rotation);
-            // Entity->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3(0.0f, 1.0f, 0.0f), timeDelta));
+            entity->Translate(delta * timeDelta);
+            entity->Rotate(rotation);
+            // entity->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3(0.0f, 1.0f, 0.0f), timeDelta));
         }
-        if (fix)
+        if (entity && fix)
         {
-            Entity->SetWorldRotation(Tsubasa::Quaternion::Identity);
-            // Entity->SetWorldRotation(Tsubasa::Quaternion::FromTo(Entity->GetWorldPosition(), Tsubasa::Vector3::Zero));
-            // Entity->SetWorldPosition(Tsubasa::Vector3::Zero);
+            entity->SetWorldRotation(Tsubasa::Quaternion::Identity);
+            // entity->SetWorldRotation(Tsubasa::Quaternion::FromTo(entity->GetWorldPosition(), Tsubasa::Vector3::Zero));
+            // entity->SetWorldPosition(Tsubasa::Vector3::Zero);
         }
         // Entity->SetWorldPosition(Entity->GetWorldPosition());
     }
@@ -45,33 +47,42 @@ public:
 class TestApplication : public Tsubasa::Application
 {
 public:
-    TestApplication() {}
-    ~TestApplication() {}
+    TestApplication() = default;
+    ~TestApplication() = default;
 
     std::shared_ptr<Tsubasa::Node> cubeNode, secondNode, thirdNode, fourthNode;
+    std::shared_ptr<Tsubasa::Node> logoNode, additionalNode, toodaSoodaNode;
 
     void OnStart() override
     {
         ActiveCamera = Root->AddChild()->AddComponent<Tsubasa::Camera>();
-        ActiveCamera->Entity->SetWorldPosition(Tsubasa::Vector3(0.0f, 2.0f, 15.0f));
+        ActiveCamera->GetEntity()->SetWorldPosition(Tsubasa::Vector3(0.0f, 2.0f, 15.0f));
 
         // ActiveCamera->Entity->SetLocalRotation(Tsubasa::Quaternion::FromEuler(Tsubasa::Vector3(0.0f, 3.14159265359f, 0.0f)));
         // ActiveCamera->Entity->SetWorldRotation(Tsubasa::Quaternion::Look(Tsubasa::Vector3::Back, Tsubasa::Vector3::Up));
         // ActiveCamera->Entity->SetWorldRotation(Tsubasa::Quaternion::LookAt(ActiveCamera->Entity->GetWorldPosition(), Tsubasa::Vector3::Zero, Tsubasa::Vector3::Up));
         // ActiveCamera->Entity->SetWorldRotation(Tsubasa::Quaternion::AngleAxis(-ActiveCamera->Entity->GetWorldPosition().Normalized(), 0.0f));
 
+        auto texture = GetAssetRegistry().Load<Tsubasa::Texture2D>("logo.png");
+        logoNode = Root->AddChild();
+        logoNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(texture));
+        logoNode->SetWorldPosition(Tsubasa::Vector3(500.0f, 300.0f, 0.0f));
+        additionalNode = logoNode->AddChild();
+        additionalNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(texture));
+        additionalNode->Translate(Tsubasa::Vector3::Right * 256.0f);
+
         cubeNode = Root->AddChild(cubeNode);
 
         auto floor = Root->AddChild()->AddComponent<Tsubasa::MeshRenderer>(Tsubasa::Model::FromPrimitive(Tsubasa::MeshType::Plane));
-        floor->Entity->SetWorldScale(Tsubasa::Vector3(10.0f, 1.0f, 10.0f));
-        floor->Entity->SetWorldPosition(Tsubasa::Vector3::Down * 0.5f);
+        floor->GetEntity()->SetWorldScale(Tsubasa::Vector3(10.0f, 1.0f, 10.0f));
+        floor->GetEntity()->SetWorldPosition(Tsubasa::Vector3::Down * 0.5f);
 
         cubeNode->AddComponent(std::make_shared<MoveComponent>());
         cubeNode->AddComponent(std::make_shared<Tsubasa::MeshRenderer>(Tsubasa::Model::FromPrimitive(Tsubasa::MeshType::Sphere)));
         cubeNode->GetComponent<MoveComponent>()->active = true;
         // cubeNode->GetComponent<MoveComponent>()->delta = Tsubasa::Vector3(0.5f, 0.0f, 0.0f);
         cubeNode->GetComponent<MoveComponent>()->rotation = Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3(0.0f, 1.0f, 0.0f), 0.003f);
-        
+
         secondNode = cubeNode->AddChild();
         secondNode->AddComponent(std::make_shared<MoveComponent>());
         secondNode->AddComponent(std::make_shared<Tsubasa::MeshRenderer>(Tsubasa::Model::FromPrimitive(Tsubasa::MeshType::Cube)));
@@ -99,7 +110,7 @@ public:
 
     void OnUpdate(float timeDelta) override
     {
-        ActiveCamera->Entity->SetWorldRotation(Tsubasa::Quaternion::LookAt(ActiveCamera->Entity->GetWorldPosition(), secondNode->GetWorldPosition(), Tsubasa::Vector3::Up));
+        ActiveCamera->GetEntity()->SetWorldRotation(Tsubasa::Quaternion::LookAt(ActiveCamera->GetEntity()->GetWorldPosition(), fourthNode->GetWorldPosition(), Tsubasa::Vector3::Up));
         // if (IsKeyPressed(KEY_SPACE))
         // {
         //     cubeNode->GetComponent<MoveComponent>()->active = !cubeNode->GetComponent<MoveComponent>()->active;
@@ -110,74 +121,34 @@ public:
         // }
         if (IsKeyDown(KEY_UP))
         {
-            ActiveCamera->Entity->Translate(Tsubasa::Vector3::Forward * timeDelta * 2.0f);
+            ActiveCamera->GetEntity()->Translate(Tsubasa::Vector3::Forward * timeDelta * 2.0f);
         }
         if (IsKeyDown(KEY_DOWN))
         {
-            ActiveCamera->Entity->Translate(Tsubasa::Vector3::Back * timeDelta * 2.0f);
+            ActiveCamera->GetEntity()->Translate(Tsubasa::Vector3::Back * timeDelta * 2.0f);
         }
         if (IsKeyDown(KEY_LEFT))
         {
-            ActiveCamera->Entity->Translate(Tsubasa::Vector3::Left * timeDelta * 2.0f);
+            ActiveCamera->GetEntity()->Translate(Tsubasa::Vector3::Left * timeDelta * 2.0f);
         }
         if (IsKeyDown(KEY_RIGHT))
         {
-            ActiveCamera->Entity->Translate(Tsubasa::Vector3::Right * timeDelta * 2.0f);
+            ActiveCamera->GetEntity()->Translate(Tsubasa::Vector3::Right * timeDelta * 2.0f);
         }
+        logoNode->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3::Back, timeDelta));
     }
 };
 
 int main(void)
 {
-    // std::shared_ptr<Tsubasa::Application> app = std::make_shared<TestApplication>();
-    // Tsubasa::LaunchOptions options;
-    // options.ScreenWidth = 1280;
-    // options.ScreenHeight = 720;
-    // options.Fullscreen = false;
-    // options.VSync = true;
-    // options.WindowTitle = "Test";
-    // app->AddSystem(std::make_shared<Tsubasa::RaylibRenderSystem>(options));
-    // app->Run();
-    int width = 1280;
-    int height = 720;
-    InitWindow(width, height, "maze");
-    float deltaX = 0;
-    float deltaY = 0;
-    while (!WindowShouldClose())
-    {
-        float timeDelta = GetFrameTime();
-        deltaX = deltaX + 100 * timeDelta;
-        deltaY = deltaY + 25 * timeDelta;
-        while (deltaX > 48)
-        {
-            deltaX -= 48;
-        }
-        while (deltaY > 48)
-        {
-            deltaY -= 48;
-        }
-        BeginDrawing();
-        ClearBackground(BLACK);
-        int depth = 5;
-        for (int x = -2; x < width / 48 + 2; x++)
-        {
-            for (int y = -2; y < height / 48 + 2; y++)
-            {
-                float rx = x * 48 + deltaX;
-                float ry = y * 48 + deltaY;
-                for (int z = 0; z < depth; z++)
-                {
-                    float alphaFactor = 1 - z / (float)depth;
-                    alphaFactor *= alphaFactor;
-                    rx -= (rx - width / 2) * 0.02;
-                    ry -= (ry - height / 2) * 0.02;
-                    // draw_rectangle_lines_ex(Rectangle(rx, ry, 24, 24), 3, Color(0, 128, 255, int(255 * alphaFactor)))
-                    DrawRectangleLinesEx(Rectangle{rx, ry, 24, 24}, 3, Color{0, 128, 255, (unsigned char)(255 * alphaFactor)});
-                }
-            }
-        }
-        EndDrawing();
-    }
-    CloseWindow();
+    std::shared_ptr<Tsubasa::Application> app = std::make_shared<TestApplication>();
+    Tsubasa::LaunchOptions options;
+    options.ScreenWidth = 1280;
+    options.ScreenHeight = 720;
+    options.Fullscreen = false;
+    options.VSync = true;
+    options.WindowTitle = "Test";
+    app->AddSystem(std::make_shared<Tsubasa::RaylibRenderSystem>(options));
+    app->Run();
     return 0;
 }
