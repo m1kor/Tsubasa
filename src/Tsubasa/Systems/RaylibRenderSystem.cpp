@@ -83,9 +83,9 @@ namespace Tsubasa
         if (client) {
             client->Root->Traverse<SpriteRenderer>([&spriteBatches](const std::shared_ptr<SpriteRenderer> &spriteRenderer)
                                                {
-            if (spriteRenderer->Enabled && spriteRenderer->Texture != nullptr)
+            if (spriteRenderer->Enabled && spriteRenderer->Sprite != nullptr && spriteRenderer->Sprite->GetTexture() != nullptr)
             {
-                unsigned int textureId = spriteRenderer->Texture->texture.id;
+                unsigned int textureId = spriteRenderer->Sprite->GetTexture()->texture.id;
                 auto entity = spriteRenderer->GetEntity();
                 if (!entity) return;
                 Vector3 worldPos = entity->GetWorldPosition();
@@ -198,7 +198,7 @@ namespace Tsubasa
 
     void RaylibRenderSystem::renderSprite(std::shared_ptr<SpriteRenderer> spriteRenderer)
     {
-        if (spriteRenderer->Texture != nullptr)
+        if (spriteRenderer->Sprite != nullptr && spriteRenderer->Sprite->GetTexture() != nullptr)
         {
             auto entity = spriteRenderer->GetEntity();
             if (!entity) return;
@@ -207,7 +207,7 @@ namespace Tsubasa
 
             float rotation = entity->GetWorldRotation().Euler().z * RAD2DEG;
 
-            ::Rectangle sourceRect = {0, 0, (float)spriteRenderer->Texture->texture.width, (float)spriteRenderer->Texture->texture.height};
+            ::Rectangle sourceRect = {0, 0, (float)spriteRenderer->Sprite->GetTexture()->texture.width, (float)spriteRenderer->Sprite->GetTexture()->texture.height};
 
             // Calculate sprite dimensions
             float spriteWidth = sourceRect.width * scale.x;
@@ -224,9 +224,10 @@ namespace Tsubasa
             rlTranslatef(-pivotOffsetX, -pivotOffsetY, 0.0f);
 
             // Draw the sprite as a textured quad in 3D space
-            rlSetTexture(spriteRenderer->Texture->texture.id);
+            rlSetTexture(spriteRenderer->Sprite->GetTexture()->texture.id);
             rlBegin(RL_QUADS);
-            rlColor4ub(255, 255, 255, 255);
+            Color tint = spriteRenderer->Sprite->GetTint();
+            rlColor4ub(tint.r, tint.g, tint.b, tint.a);
             rlNormal3f(0.0f, 0.0f, 1.0f);
 
             // Bottom-left
@@ -261,12 +262,11 @@ namespace Tsubasa
 
         // Get texture dimensions from the first instance for UV calculations
         const auto &firstInstance = instances[0];
-        float textureWidth = (float)firstInstance.Renderer->Texture->texture.width;
-        float textureHeight = (float)firstInstance.Renderer->Texture->texture.height;
+        float textureWidth = (float)firstInstance.Renderer->Sprite->GetTexture()->texture.width;
+        float textureHeight = (float)firstInstance.Renderer->Sprite->GetTexture()->texture.height;
 
         // Begin batch rendering
         rlBegin(RL_QUADS);
-        rlColor4ub(255, 255, 255, 255);
         rlNormal3f(0.0f, 0.0f, 1.0f);
 
         // Render all instances in this batch
@@ -299,6 +299,10 @@ namespace Tsubasa
                 {1.0f, 0.0f}, // Top-right
                 {0.0f, 0.0f}  // Top-left
             };
+
+            // Set color for this instance
+            Color tint = instance.Renderer->Sprite->GetTint();
+            rlColor4ub(tint.r, tint.g, tint.b, tint.a);
 
             // Render the quad with rotation and translation
             for (int i = 0; i < 4; i++)

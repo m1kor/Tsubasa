@@ -2,8 +2,8 @@
 
 namespace Tsubasa
 {
-    SpriteRenderer::SpriteRenderer(std::shared_ptr<Texture2D> texture)
+    SpriteRenderer::SpriteRenderer(std::shared_ptr<SpriteMaterial> sprite)
     {
-        Texture = texture;
+        this->Sprite = sprite;
     }
 }

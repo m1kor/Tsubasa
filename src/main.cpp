@@ -64,12 +64,15 @@ public:
         // ActiveCamera->Entity->SetWorldRotation(Tsubasa::Quaternion::AngleAxis(-ActiveCamera->Entity->GetWorldPosition().Normalized(), 0.0f));
 
         auto texture = GetAssetRegistry().Load<Tsubasa::Texture2D>("logo.png");
+        auto sprite = std::make_shared<Tsubasa::SpriteMaterial>(texture);
+        sprite->SetTint(RED);
+        auto spriteBlue = std::make_shared<Tsubasa::SpriteMaterial>(texture, BLUE);
         logoNode = Root->AddChild();
-        logoNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(texture));
+        logoNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(sprite));
         logoNode->SetWorldPosition(Tsubasa::Vector3(500.0f, 300.0f, 0.0f));
         additionalNode = logoNode->AddChild();
-        additionalNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(texture));
-        additionalNode->Translate(Tsubasa::Vector3::Right * 256.0f);
+        additionalNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(spriteBlue));
+        additionalNode->Translate(Tsubasa::Vector3::Right * 128.0f);
 
         cubeNode = Root->AddChild(cubeNode);
 
