@@ -22,6 +22,7 @@ namespace Tsubasa
     class Texture2D
     {
         friend class RaylibRenderSystem;
+        friend class Shader;
         
     public:
         Texture2D(const std::string path, const std::vector<uint8_t> data, TextureFilter filter = TextureFilter::Trilinear);

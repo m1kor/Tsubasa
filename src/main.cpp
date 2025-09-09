@@ -1,6 +1,7 @@
 #include <raylib/raylib.h>
 #include <Tsubasa/Application.h>
 #include <Tsubasa/Core/Graphics/Texture2D.h>
+#include <Tsubasa/Core/Graphics/Shader.h>
 #include <Tsubasa/Components/Camera.h>
 #include <Tsubasa/Components/MeshRenderer.h>
 #include <Tsubasa/Components/SpriteRenderer.h>
@@ -143,9 +144,60 @@ public:
     }
 };
 
+class ShaderExampleApplication : public Tsubasa::Application
+{
+public:
+    ShaderExampleApplication() = default;
+    ~ShaderExampleApplication() = default;
+
+    std::shared_ptr<Tsubasa::Node> defaultSpriteNode, tintedSpriteNode, outlineNode;
+
+    void OnStart() override
+    {
+        ActiveCamera = Root->AddChild()->AddComponent<Tsubasa::Camera>();
+        ActiveCamera->GetEntity()->SetWorldPosition(Tsubasa::Vector3(0.0f, 0.0f, 5.0f));
+
+        // Load a texture
+        auto texture = GetAssetRegistry().Load<Tsubasa::Texture2D>("logo.png");
+
+        // Create sprite with default shader
+        auto defaultMaterial = std::make_shared<Tsubasa::SpriteMaterial>(texture);
+        defaultSpriteNode = Root->AddChild();
+        defaultSpriteNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(defaultMaterial));
+        defaultSpriteNode->SetWorldPosition(Tsubasa::Vector3(200.0f, 200.0f, 0.0f));
+
+        // Create sprite with tinted shader
+        auto tintedShader = Tsubasa::Shader::CreateTinted();
+        auto tintedMaterial = std::make_shared<Tsubasa::SpriteMaterial>(texture, Tsubasa::Vector4(1.0f, 1.0f, 1.0f, 1.0f), tintedShader);
+        tintedMaterial->SetVector4("tintColor", Tsubasa::Vector4(1.0f, 0.5f, 0.2f, 1.0f)); // Orange tint
+        tintedSpriteNode = Root->AddChild();
+        tintedSpriteNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(tintedMaterial));
+        tintedSpriteNode->SetWorldPosition(Tsubasa::Vector3(400.0f, 200.0f, 0.0f));
+
+        // Create sprite with outline shader
+        auto outlineShader = Tsubasa::Shader::CreateOutline();
+        auto outlineMaterial = std::make_shared<Tsubasa::SpriteMaterial>(texture, Tsubasa::Vector4(1.0f, 1.0f, 1.0f, 1.0f), tintedShader);
+        outlineMaterial->SetVector4("tintColor", Tsubasa::Vector4(0.5f, 0.5f, 1.0f, 1.0f)); // Light blue tint
+        // outlineMaterial->SetVector4("outlineColor", Tsubasa::Vector4(0.0f, 1.0f, 0.0f, 1.0f)); // Green outline
+        // outlineMaterial->SetFloat("outlineWidth", 2.0f);
+        // outlineMaterial->SetVector2("textureSize", Tsubasa::Vector2(128.0f, 128.0f)); // Assuming logo is 128x128
+        outlineNode = Root->AddChild();
+        outlineNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(outlineMaterial));
+        outlineNode->SetWorldPosition(Tsubasa::Vector3(600.0f, 200.0f, 0.0f));
+    }
+
+    void OnUpdate(float timeDelta) override
+    {
+        // Rotate sprites to show them in action
+        defaultSpriteNode->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3::Back, timeDelta * 0.5f));
+        tintedSpriteNode->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3::Forward, timeDelta * 0.8f));
+        outlineNode->Rotate(Tsubasa::Quaternion::AngleAxis(Tsubasa::Vector3::Back, timeDelta * 0.3f));
+    }
+};
+
 int main(void)
 {
-    std::shared_ptr<Tsubasa::Application> app = std::make_shared<TestApplication>();
+    std::shared_ptr<Tsubasa::Application> app = std::make_shared<ShaderExampleApplication>();
     Tsubasa::LaunchOptions options;
     options.ScreenWidth = 1280;
     options.ScreenHeight = 720;
