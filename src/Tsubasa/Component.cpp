@@ -4,12 +4,12 @@
 
 namespace Tsubasa
 {
-    Component::Component() : Enabled(enabled), Entity(entity)
+    Component::Component() : Enabled(enabled)
     {
         enabled = true;
     }
 
-    Component::~Component() {}
+    Component::~Component() = default;
 
     void Component::Enable()
     {
@@ -50,4 +50,15 @@ namespace Tsubasa
     void Component::OnUpdate(float timeDelta) {}
 
     void Component::OnDestroy() {}
+
+    std::shared_ptr<Node> Component::GetEntity() const
+    {
+        return entity.lock();
+    }
+
+    std::shared_ptr<Application> Component::GetApplication() const
+    {
+        auto node = entity.lock();
+        return node ? node->GetClient() : nullptr;
+    }
 }

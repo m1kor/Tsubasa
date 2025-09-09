@@ -5,6 +5,7 @@
 namespace Tsubasa
 {
     class Node;
+    class Application;
 
     class Component
     {
@@ -25,10 +26,11 @@ namespace Tsubasa
         virtual void OnDestroy();
 
         const bool &Enabled;
-        const std::shared_ptr<Node> &Entity;
+        std::shared_ptr<Node> GetEntity() const;
+        std::shared_ptr<Application> GetApplication() const;
 
     private:
         bool enabled;
-        std::shared_ptr<Node> entity;
+        std::weak_ptr<Node> entity;
     };
 }

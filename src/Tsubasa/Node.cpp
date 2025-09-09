@@ -5,7 +5,7 @@
 
 namespace Tsubasa
 {
-    Node::Node() : Client(application), Parent(parent), Children(children), Components(components), Transform(transform), LocalPosition(localPosition), LocalRotation(localRotation), LocalScale(localScale)
+    Node::Node() : Children(children), Components(components), Transform(transform), LocalPosition(localPosition), LocalRotation(localRotation), LocalScale(localScale)
     {
         transform = Matrix4x4::Identity;
         localPosition = Vector3::Zero;
@@ -24,15 +24,16 @@ namespace Tsubasa
 
     bool Node::SetParent(const std::shared_ptr<Node> &newParent)
     {
-        if (parent != newParent && newParent != nullptr && newParent != shared_from_this())
+        auto currentParent = parent.lock();
+        if (currentParent != newParent && newParent != nullptr && newParent != shared_from_this())
         {
-            if (parent != nullptr)
+            if (currentParent != nullptr)
             {
-                parent->children.erase(std::remove(parent->children.begin(), parent->children.end(), shared_from_this()), parent->children.end());
+                currentParent->children.erase(std::remove(currentParent->children.begin(), currentParent->children.end(), shared_from_this()), currentParent->children.end());
             }
             application = newParent->application;
             parent = newParent;
-            parent->children.push_back(shared_from_this());
+            newParent->children.push_back(shared_from_this());
             makeDirty();
             return true;
         }
@@ -74,8 +75,8 @@ namespace Tsubasa
         if (it != children.end())
         {
             children.erase(it);
-            child->parent = nullptr;
-            child->application = nullptr;
+            child->parent.reset();
+            child->application.reset();
             return child;
         }
         return nullptr;
@@ -93,7 +94,7 @@ namespace Tsubasa
         {
             component->OnDestroy();
             components.erase(it);
-            component->entity = nullptr;
+            component->entity.reset();
             return component;
         }
         return nullptr;
@@ -110,7 +111,7 @@ namespace Tsubasa
             SetLocalPosition(LocalPosition + Vector3(x, y, z));
         }
     }
-    
+
     void Node::Translate(const Vector3 &translation, const Space &space)
     {
         if (space == Space::World)
@@ -227,7 +228,8 @@ namespace Tsubasa
 
     Vector3 Node::GetWorldPosition()
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
             if (dirty)
             {
@@ -243,7 +245,8 @@ namespace Tsubasa
 
     Vector3 Node::TransformPoint(const Vector3 &offset)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
             if (dirty)
             {
@@ -259,13 +262,14 @@ namespace Tsubasa
 
     void Node::SetWorldPosition(const float &x, const float &y, const float &z)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            if (parent->dirty)
+            if (parentPtr->dirty)
             {
-                parent->updateTransform();
+                parentPtr->updateTransform();
             }
-            SetLocalPosition(parent->transform.Inversed() * Vector3(x, y, z));
+            SetLocalPosition(parentPtr->transform.Inversed() * Vector3(x, y, z));
         }
         else
         {
@@ -275,13 +279,14 @@ namespace Tsubasa
 
     void Node::SetWorldPosition(const Vector3 &position)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            if (parent->dirty)
+            if (parentPtr->dirty)
             {
-                parent->updateTransform();
+                parentPtr->updateTransform();
             }
-            SetLocalPosition(parent->transform.Inversed() * position);
+            SetLocalPosition(parentPtr->transform.Inversed() * position);
         }
         else
         {
@@ -291,9 +296,10 @@ namespace Tsubasa
 
     Quaternion Node::GetWorldRotation() const
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            return parent->GetWorldRotation() * localRotation;
+            return parentPtr->GetWorldRotation() * localRotation;
         }
         else
         {
@@ -303,9 +309,10 @@ namespace Tsubasa
 
     void Node::SetWorldRotation(const Quaternion &rotation)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            SetLocalRotation(parent->GetWorldRotation().Inverse() * rotation);
+            SetLocalRotation(parentPtr->GetWorldRotation().Inverse() * rotation);
         }
         else
         {
@@ -315,9 +322,10 @@ namespace Tsubasa
 
     void Node::SetWorldRotation(const float &x, const float &y, const float &z)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            SetLocalRotation(parent->GetWorldRotation().Inverse() * Quaternion::FromEuler(x, y, z));
+            SetLocalRotation(parentPtr->GetWorldRotation().Inverse() * Quaternion::FromEuler(x, y, z));
         }
         else
         {
@@ -327,9 +335,10 @@ namespace Tsubasa
 
     void Node::SetWorldRotation(const Vector3 &euler)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            SetLocalRotation(parent->GetWorldRotation().Inverse() * Quaternion::FromEuler(euler));
+            SetLocalRotation(parentPtr->GetWorldRotation().Inverse() * Quaternion::FromEuler(euler));
         }
         else
         {
@@ -339,9 +348,10 @@ namespace Tsubasa
 
     Vector3 Node::GetWorldScale() const
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            return localScale * parent->GetWorldScale();
+            return localScale * parentPtr->GetWorldScale();
         }
         else
         {
@@ -351,9 +361,10 @@ namespace Tsubasa
 
     void Node::SetWorldScale(const float &x, const float &y, const float &z)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            const Vector3 &worldScale = parent->GetWorldScale();
+            const Vector3 &worldScale = parentPtr->GetWorldScale();
             SetLocalScale(Vector3(x / worldScale.x, y / worldScale.y, z / worldScale.z));
         }
         else
@@ -364,9 +375,10 @@ namespace Tsubasa
 
     void Node::SetWorldScale(const Vector3 &scale)
     {
-        if (parent)
+        auto parentPtr = parent.lock();
+        if (parentPtr)
         {
-            SetLocalScale(scale / parent->GetWorldScale());
+            SetLocalScale(scale / parentPtr->GetWorldScale());
         }
         else
         {
@@ -390,6 +402,16 @@ namespace Tsubasa
         }
     }
 
+    std::shared_ptr<Application> Node::GetClient() const
+    {
+        return application.lock();
+    }
+
+    std::shared_ptr<Node> Node::GetParent() const
+    {
+        return parent.lock();
+    }
+
     void Node::makeDirty()
     {
         dirty = true;
@@ -403,14 +425,15 @@ namespace Tsubasa
     {
         if (dirty)
         {
-            if (parent)
+            auto parentPtr = parent.lock();
+            if (parentPtr)
             {
-                if (parent->dirty)
+                if (parentPtr->dirty)
                 {
-                    parent->updateTransform();
+                    parentPtr->updateTransform();
                 }
-                transform = Matrix4x4::TRS(LocalPosition, LocalRotation, LocalScale) * parent->Transform;
-                // transform = Matrix4x4::Scale(LocalScale) * Matrix4x4::Rotate(LocalRotation) * Matrix4x4::Translate(LocalPosition) * parent->Transform;
+                transform = Matrix4x4::TRS(LocalPosition, LocalRotation, LocalScale) * parentPtr->Transform;
+                // transform = Matrix4x4::Scale(LocalScale) * Matrix4x4::Rotate(LocalRotation) * Matrix4x4::Translate(LocalPosition) * parentPtr->Transform;
             }
             else
             {

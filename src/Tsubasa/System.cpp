@@ -3,9 +3,9 @@
 
 namespace Tsubasa
 {
-    System::System() : Client(application) {}
+    System::System() {}
 
-    System::~System() {}
+    System::~System() = default;
 
     void System::OnInit() {}
 
@@ -14,5 +14,12 @@ namespace Tsubasa
         return true;
     }
 
+    void System::OnStop() {}
+
     void System::OnExit() {}
+
+    std::shared_ptr<Application> System::GetClient() const
+    {
+        return application.lock();
+    }
 }

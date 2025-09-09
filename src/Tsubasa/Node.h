@@ -92,19 +92,19 @@ namespace Tsubasa
             });
         }
 
-        const std::shared_ptr<Node> &Parent;
+        std::shared_ptr<Node> GetParent() const;
         const std::vector<std::shared_ptr<Node>> &Children;
         std::vector<std::shared_ptr<Component>> &Components;
 
-        const std::shared_ptr<Application> &Client;
+        std::shared_ptr<Application> GetClient() const;
         const Vector3 &LocalPosition;
         const Quaternion &LocalRotation;
         const Vector3 &LocalScale;
         const Matrix4x4 &Transform;
 
     private:
-        std::shared_ptr<Application> application;
-        std::shared_ptr<Node> parent;
+        std::weak_ptr<Application> application;
+        std::weak_ptr<Node> parent;
         std::vector<std::shared_ptr<Node>> children;
         std::vector<std::shared_ptr<Component>> components;
         bool dirty;
@@ -128,21 +128,19 @@ namespace Tsubasa
             newComponent->OnInit();
             return newComponent;
         }
-        else if (component->Entity != shared_from_this())
+        else if (component->GetEntity() != shared_from_this())
         {
-            if (component->Entity != nullptr)
+            auto entity = component->GetEntity();
+            if (entity != nullptr)
             {
-                component->Entity->RemoveComponent(component);
+                entity->RemoveComponent(component);
             }
             component->entity = shared_from_this();
             components.push_back(component);
             component->OnInit();
             return component;
         }
-        else
-        {
-            return nullptr;
-        }
+        return nullptr;
     }
 
     template <typename T, typename... Args>

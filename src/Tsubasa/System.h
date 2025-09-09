@@ -15,11 +15,12 @@ namespace Tsubasa
 
         virtual void OnInit();
         virtual bool OnUpdate(float timeDelta);
+        virtual void OnStop();
         virtual void OnExit();
 
-        const std::shared_ptr<Application> &Client;
+        std::shared_ptr<Application> GetClient() const;
 
     private:
-        std::shared_ptr<Application> application;
+        std::weak_ptr<Application> application;
     };
 }
