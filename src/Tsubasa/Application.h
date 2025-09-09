@@ -1,8 +1,9 @@
 #pragma once
 
+#include <Tsubasa/Assets/AssetRegistry.h>
+#include <Tsubasa/Components/Camera.h>
 #include <Tsubasa/Node.h>
 #include <Tsubasa/System.h>
-#include <Tsubasa/Components/Camera.h>
 #include <list>
 #include <memory>
 #include <string>
@@ -38,6 +39,7 @@ namespace Tsubasa
         virtual void OnInit();
         virtual void OnStart();
         virtual void OnUpdate(float timeDelta);
+        virtual void OnStop();
         virtual void OnExit();
 
         std::shared_ptr<Camera> ActiveCamera;
@@ -46,10 +48,13 @@ namespace Tsubasa
 
         const std::list<std::shared_ptr<System>> &Systems;
 
+        AssetRegistry &GetAssetRegistry() const;
+
     private:
         bool running;
         std::shared_ptr<Node> root;
         std::list<std::shared_ptr<System>> systems;
+        std::unique_ptr<AssetRegistry> assetRegistry;
     };
 
     template <typename T>
@@ -66,11 +71,12 @@ namespace Tsubasa
             }
             return newSystem;
         }
-        else if (system->Client != shared_from_this())
+        else if (system->GetClient() != shared_from_this())
         {
-            if (system->Client != nullptr)
+            auto client = system->GetClient();
+            if (client != nullptr)
             {
-                system->Client->RemoveSystem(system);
+                client->RemoveSystem(system);
             }
             system->application = shared_from_this();
             systems.push_back(system);
