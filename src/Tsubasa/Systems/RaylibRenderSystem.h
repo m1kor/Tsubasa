@@ -3,6 +3,9 @@
 #include <Tsubasa/System.h>
 #include <Tsubasa/Components/Camera.h>
 #include <string>
+#include <vector>
+#include <memory>
+#include <raylib/raylib.h>
 
 namespace Tsubasa
 {
@@ -15,7 +18,10 @@ namespace Tsubasa
         bool VSync;
     };
 
+    struct SpriteInstanceData;
+
     class MeshRenderer;
+    class SpriteRenderer;
 
     class RaylibRenderSystem : public System
     {
@@ -33,5 +39,7 @@ namespace Tsubasa
     private:
         void beginMode3D(std::shared_ptr<Camera> camera);
         void renderModel(std::shared_ptr<MeshRenderer> meshRenderer);
+        void renderSprite(std::shared_ptr<SpriteRenderer> spriteRenderer);
+        void renderSpriteBatch(unsigned int textureId, const std::vector<struct SpriteInstanceData> &instances);
     };
 }
