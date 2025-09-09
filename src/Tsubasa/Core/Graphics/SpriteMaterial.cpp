@@ -2,8 +2,8 @@
 
 namespace Tsubasa
 {
-    SpriteMaterial::SpriteMaterial(std::shared_ptr<Texture2D> texture, Color tint)
-        : texture(texture), tint(tint)
+    SpriteMaterial::SpriteMaterial(std::shared_ptr<Texture2D> texture, Vector4 tint)
+        : texture(texture), Tint(tint)
     {
     }
 
@@ -15,15 +15,5 @@ namespace Tsubasa
     void SpriteMaterial::SetTexture(std::shared_ptr<Texture2D> texture)
     {
         this->texture = texture;
-    }
-
-    Color SpriteMaterial::GetTint() const
-    {
-        return tint;
-    }
-
-    void SpriteMaterial::SetTint(Color tint)
-    {
-        this->tint = tint;
     }
 }

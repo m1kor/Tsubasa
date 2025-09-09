@@ -65,8 +65,9 @@ public:
 
         auto texture = GetAssetRegistry().Load<Tsubasa::Texture2D>("logo.png");
         auto sprite = std::make_shared<Tsubasa::SpriteMaterial>(texture);
-        sprite->SetTint(RED);
-        auto spriteBlue = std::make_shared<Tsubasa::SpriteMaterial>(texture, BLUE);
+        sprite->Tint = Tsubasa::Vector4(1.0f, 0.5f, 0.5f, 1.0f);
+        auto spriteBlue = std::make_shared<Tsubasa::SpriteMaterial>(texture);
+        spriteBlue->Tint = Tsubasa::Vector4(0.5f, 0.5f, 1.0f, 1.0f);
         logoNode = Root->AddChild();
         logoNode->AddComponent(std::make_shared<Tsubasa::SpriteRenderer>(sprite));
         logoNode->SetWorldPosition(Tsubasa::Vector3(500.0f, 300.0f, 0.0f));

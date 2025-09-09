@@ -226,8 +226,8 @@ namespace Tsubasa
             // Draw the sprite as a textured quad in 3D space
             rlSetTexture(spriteRenderer->Sprite->GetTexture()->texture.id);
             rlBegin(RL_QUADS);
-            Color tint = spriteRenderer->Sprite->GetTint();
-            rlColor4ub(tint.r, tint.g, tint.b, tint.a);
+            Vector4 tint = spriteRenderer->Sprite->Tint;
+            rlColor4f(tint.x, tint.y, tint.z, tint.w);
             rlNormal3f(0.0f, 0.0f, 1.0f);
 
             // Bottom-left
@@ -301,8 +301,8 @@ namespace Tsubasa
             };
 
             // Set color for this instance
-            Color tint = instance.Renderer->Sprite->GetTint();
-            rlColor4ub(tint.r, tint.g, tint.b, tint.a);
+            Vector4 tint = instance.Renderer->Sprite->Tint;
+            rlColor4f(tint.x, tint.y, tint.z, tint.w);
 
             // Render the quad with rotation and translation
             for (int i = 0; i < 4; i++)
