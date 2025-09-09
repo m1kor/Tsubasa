@@ -96,7 +96,7 @@ namespace Tsubasa
     const std::shared_ptr<T> Application::AddSystem(Args... args)
     {
         std::shared_ptr<T> newSystem = std::make_shared<T>(args...);
-        newSystem->entity = shared_from_this();
+        newSystem->application = shared_from_this();
         systems.push_back(newSystem);
         if (running)
         {
