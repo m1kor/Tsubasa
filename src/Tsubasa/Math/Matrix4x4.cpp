@@ -5,7 +5,7 @@
 
 namespace Tsubasa
 {
-    Matrix4x4::Matrix4x4() {}
+    Matrix4x4::Matrix4x4() = default;
 
     Matrix4x4::Matrix4x4(float v[16])
     {
@@ -15,7 +15,7 @@ namespace Tsubasa
         }
     }
 
-    Matrix4x4::~Matrix4x4() {}
+    Matrix4x4::~Matrix4x4() = default;
 
     float Matrix4x4::Determinant() const
     {

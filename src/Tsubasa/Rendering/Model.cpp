@@ -20,7 +20,7 @@ namespace Tsubasa
         Load(path);
     }
 
-    Model::~Model() {}
+    Model::~Model() = default;
 
     void Model::Generate(const MeshType type)
     {

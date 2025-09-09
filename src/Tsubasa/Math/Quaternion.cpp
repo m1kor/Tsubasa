@@ -5,7 +5,7 @@
 
 namespace Tsubasa
 {
-    Quaternion::Quaternion() {}
+    Quaternion::Quaternion() = default;
 
     Quaternion::Quaternion(const float &x, const float &y, const float &z, const float &w)
     {
@@ -15,7 +15,7 @@ namespace Tsubasa
         this->w = w;
     }
 
-    Quaternion::~Quaternion() {}
+    Quaternion::~Quaternion() = default;
 
     void Quaternion::Normalize()
     {

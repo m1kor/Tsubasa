@@ -8,5 +8,5 @@ namespace Tsubasa
         FieldOfView = fieldOfView;
     }
     
-    Camera::~Camera() {}
+    Camera::~Camera() = default;
 }

@@ -16,5 +16,5 @@ namespace Tsubasa
         }
     }
 
-    MeshRenderer::~MeshRenderer() {}
+    MeshRenderer::~MeshRenderer() = default;
 }
