@@ -3,7 +3,7 @@
 namespace Tsubasa
 {
     Texture2D::Texture2D(const std::string path, const std::vector<uint8_t> data, TextureFilter filter)
-        : filter(filter), Filter(filter)
+        : filter(filter), Filter(this->filter)
     {
         image = ::LoadImageFromMemory(".png", data.data(), static_cast<int>(data.size()));
         texture = ::LoadTextureFromImage(image);
