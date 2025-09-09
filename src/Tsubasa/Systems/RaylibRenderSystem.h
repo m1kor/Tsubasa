@@ -38,6 +38,8 @@ namespace Tsubasa
     
     private:
         void beginMode3D(std::shared_ptr<Camera> camera);
+        void beginMode2D();
+        void endMode2D();
         void renderModel(std::shared_ptr<MeshRenderer> meshRenderer);
         void renderSprite(std::shared_ptr<SpriteRenderer> spriteRenderer);
         void renderSpriteBatch(unsigned int textureId, const std::vector<struct SpriteInstanceData> &instances);

@@ -74,15 +74,15 @@ namespace Tsubasa
             EndMode3D();
         }
 
-        // Enable depth testing for sprites
-        rlEnableDepthTest();
+        beginMode2D();
 
         // Collect and batch sprites by texture for instanced rendering
         std::unordered_map<unsigned int, std::vector<SpriteInstanceData>> spriteBatches;
 
-        if (client) {
+        if (client)
+        {
             client->Root->Traverse<SpriteRenderer>([&spriteBatches](const std::shared_ptr<SpriteRenderer> &spriteRenderer)
-                                               {
+                                                   {
             if (spriteRenderer->Enabled && spriteRenderer->Sprite != nullptr && spriteRenderer->Sprite->GetTexture() != nullptr)
             {
                 unsigned int textureId = spriteRenderer->Sprite->GetTexture()->texture.id;
@@ -108,8 +108,7 @@ namespace Tsubasa
             renderSpriteBatch(batch.first, batch.second);
         }
 
-        // Disable depth testing after sprite rendering
-        rlDisableDepthTest();
+        endMode2D();
 
         EndDrawing();
         return true;
@@ -153,11 +152,42 @@ namespace Tsubasa
 
         // Setup Camera view
         auto cameraEntity = camera->GetEntity();
-        if (!cameraEntity) return;
+        if (!cameraEntity)
+            return;
         Matrix4x4 matView = Matrix4x4::LookAt(cameraEntity->GetWorldPosition(), cameraEntity->TransformPoint(Vector3::Forward), cameraEntity->GetWorldRotation() * Vector3::Up).Transposed();
         rlMultMatrixf(matView.m); // Multiply modelview matrix by view matrix (camera)
 
         rlEnableDepthTest(); // Enable DEPTH_TEST for 3D
+    }
+
+    void RaylibRenderSystem::beginMode2D()
+    {
+        rlDrawRenderBatchActive(); // Update and draw internal render batch
+
+        rlMatrixMode(RL_PROJECTION); // Switch to projection matrix
+        rlPushMatrix();              // Save previous matrix
+        rlLoadIdentity();            // Reset current matrix (projection)
+
+        // Setup orthogonal projection for 2D rendering with depth range for Z sorting
+        // Origin at top-left, Y axis pointing down (screen coordinates)
+        rlOrtho(0.0, GetRenderWidth(), GetRenderHeight(), 0.0, -1000.0, 1000.0);
+
+        rlMatrixMode(RL_MODELVIEW); // Switch back to modelview matrix
+        rlLoadIdentity();           // Reset current matrix (modelview)
+
+        // Enable depth testing for hardware Z sorting
+        rlEnableDepthTest();
+    }
+
+    void RaylibRenderSystem::endMode2D()
+    {
+        rlDrawRenderBatchActive(); // Update and draw internal render batch
+
+        rlMatrixMode(RL_PROJECTION); // Switch to projection matrix
+        rlPopMatrix();               // Restore previous matrix
+
+        rlMatrixMode(RL_MODELVIEW); // Switch back to modelview matrix
+        rlLoadIdentity();           // Reset current matrix (modelview)
     }
 
     void RaylibRenderSystem::renderModel(std::shared_ptr<MeshRenderer> meshRenderer)
@@ -165,7 +195,8 @@ namespace Tsubasa
         if (meshRenderer->RenderModel != nullptr && meshRenderer->RenderModel->model != nullptr)
         {
             auto entity = meshRenderer->GetEntity();
-            if (!entity) return;
+            if (!entity)
+                return;
             for (int i = 0; i < meshRenderer->RenderModel->model->meshCount; i++)
             {
                 ::Matrix transform;
@@ -201,7 +232,8 @@ namespace Tsubasa
         if (spriteRenderer->Sprite != nullptr && spriteRenderer->Sprite->GetTexture() != nullptr)
         {
             auto entity = spriteRenderer->GetEntity();
-            if (!entity) return;
+            if (!entity)
+                return;
             Vector3 worldPos = entity->GetWorldPosition();
             Vector3 scale = entity->GetWorldScale();
 
