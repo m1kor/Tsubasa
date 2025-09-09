@@ -1,4 +1,4 @@
-#include <Tsubasa/Assets/AssetRegistry.h>
+#include <Tsubasa/Core/Assets/AssetRegistry.h>
 
 namespace Tsubasa
 {

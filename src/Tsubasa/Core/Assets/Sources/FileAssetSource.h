@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tsubasa/Assets/AssetSource.h>
+#include <Tsubasa/Core/Assets/AssetSource.h>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>

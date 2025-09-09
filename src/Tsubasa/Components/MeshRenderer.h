@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Tsubasa/Component.h>
-#include <Tsubasa/Rendering/Model.h>
+#include <Tsubasa/Core/Graphics/Model.h>
 #include <memory>
 
 namespace Tsubasa

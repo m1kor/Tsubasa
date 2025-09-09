@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <sstream>
-#include <Tsubasa/Assets/AssetSource.h>
+#include <Tsubasa/Core/Assets/AssetSource.h>
 
 namespace Tsubasa
 {

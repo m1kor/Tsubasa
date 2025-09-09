@@ -1,5 +1,5 @@
 #include <Tsubasa/Component.h>
-#include <Tsubasa/Assets/Texture2D.h>
+#include <Tsubasa/Core/Graphics/Texture2D.h>
 #include <Tsubasa/Math/Vector2.h>
 #include <memory>
 

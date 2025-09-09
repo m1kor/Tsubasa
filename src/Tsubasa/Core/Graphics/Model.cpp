@@ -1,4 +1,4 @@
-#include <Tsubasa/Rendering/Model.h>
+#include <Tsubasa/Core/Graphics/Model.h>
 #include <raylib/raylib.h>
 
 namespace Tsubasa

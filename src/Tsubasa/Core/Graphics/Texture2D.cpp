@@ -1,4 +1,4 @@
-#include <Tsubasa/Assets/Texture2D.h>
+#include <Tsubasa/Core/Graphics/Texture2D.h>
 
 namespace Tsubasa
 {

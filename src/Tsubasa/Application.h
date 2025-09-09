@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tsubasa/Assets/AssetRegistry.h>
+#include <Tsubasa/Core/Assets/AssetRegistry.h>
 #include <Tsubasa/Components/Camera.h>
 #include <Tsubasa/Node.h>
 #include <Tsubasa/System.h>

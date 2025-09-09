@@ -1,6 +1,6 @@
 #include <raylib/raylib.h>
 #include <Tsubasa/Application.h>
-#include <Tsubasa/Assets/Texture2D.h>
+#include <Tsubasa/Core/Graphics/Texture2D.h>
 #include <Tsubasa/Components/Camera.h>
 #include <Tsubasa/Components/MeshRenderer.h>
 #include <Tsubasa/Components/SpriteRenderer.h>
