@@ -1,7 +1,7 @@
 #include <Tsubasa/Math/Quaternion.h>
 #include <Tsubasa/Math/Matrix4x4.h>
 #include <Tsubasa/Math/Vector3.h>
-#include <math.h>
+#include <cmath>
 
 namespace Tsubasa
 {
