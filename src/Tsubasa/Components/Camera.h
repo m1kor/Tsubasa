@@ -1,9 +1,14 @@
 #pragma once
 
 #include <Tsubasa/Component.h>
+#include <memory>
+#include <vector>
 
 namespace Tsubasa
 {
+    class RenderTexture;
+    class PostprocessEffect;
+
     enum class CameraProjection
     {
         Perspective,
@@ -18,5 +23,19 @@ namespace Tsubasa
 
         float FieldOfView;
         CameraProjection Projection;
+        
+        // Render target
+        void SetRenderTarget(std::shared_ptr<RenderTexture> renderTarget);
+        std::shared_ptr<RenderTexture> GetRenderTarget() const { return renderTarget; }
+        
+        // Postprocessing
+        void AddPostprocessEffect(std::shared_ptr<PostprocessEffect> effect);
+        void RemovePostprocessEffect(std::shared_ptr<PostprocessEffect> effect);
+        void ClearPostprocessEffects();
+        const std::vector<std::shared_ptr<PostprocessEffect>>& GetPostprocessEffects() const { return postprocessEffects; }
+
+    private:
+        std::shared_ptr<RenderTexture> renderTarget;
+        std::vector<std::shared_ptr<PostprocessEffect>> postprocessEffects;
     };
 }

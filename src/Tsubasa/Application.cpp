@@ -10,7 +10,6 @@ namespace Tsubasa
     {
         running = false;
         root = std::make_shared<Node>();
-        ActiveCamera = nullptr;
         assetRegistry = std::make_unique<AssetRegistry>();
         assetRegistry->AddAssetSource(std::make_unique<FileAssetSource>("./assets/"));
     }

@@ -44,5 +44,9 @@ namespace Tsubasa
         void renderModel(std::shared_ptr<MeshRenderer> meshRenderer);
         void renderSprite(std::shared_ptr<SpriteRenderer> spriteRenderer);
         void renderSpriteBatch(unsigned int textureId, std::shared_ptr<SpriteMaterial> material, const std::vector<struct SpriteInstanceData> &instances);
+        void applyPostprocessEffects(std::shared_ptr<Camera> camera, ::Texture2D sourceTexture);
+        void renderCameraToTarget(std::shared_ptr<Camera> camera);
+        void renderCameraToScreen(std::shared_ptr<Camera> camera);
+        void renderSprites();
     };
 }

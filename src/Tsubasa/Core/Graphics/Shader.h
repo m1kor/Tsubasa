@@ -45,6 +45,9 @@ namespace Tsubasa
 
         // Get the Raylib shader ID
         unsigned int GetShaderID() const { return shader.id; }
+        
+        // Get the Raylib shader struct (for internal use)
+        const ::Shader& GetRaylibShader() const { return shader; }
 
         // Check if shader is valid
         bool IsValid() const { return shader.id > 0; }

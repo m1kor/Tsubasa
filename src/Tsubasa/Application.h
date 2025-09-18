@@ -42,7 +42,6 @@ namespace Tsubasa
         virtual void OnStop();
         virtual void OnExit();
 
-        std::shared_ptr<Camera> ActiveCamera;
 
         const std::shared_ptr<Node> &Root;
 

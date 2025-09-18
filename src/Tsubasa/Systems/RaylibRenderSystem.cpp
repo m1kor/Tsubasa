@@ -2,6 +2,8 @@
 #include <Tsubasa/Application.h>
 #include <Tsubasa/Components/MeshRenderer.h>
 #include <Tsubasa/Components/SpriteRenderer.h>
+#include <Tsubasa/Core/Graphics/RenderTexture.h>
+#include <Tsubasa/Core/Graphics/PostprocessEffect.h>
 #include <raylib/raylib.h>
 #include <raylib/rlgl.h>
 #include <math.h>
@@ -58,80 +60,80 @@ namespace Tsubasa
         {
             return false;
         }
+
+        auto client = GetClient();
+        if (!client)
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            DrawFPS(10, 10);
+            EndDrawing();
+            return true;
+        }
+
+        // Collect all cameras in the scene
+        std::vector<std::shared_ptr<Camera>> cameras;
+        client->Root->Traverse<Camera>([&cameras](const std::shared_ptr<Camera> &camera)
+                                       {
+            if (camera->Enabled && camera->GetEntity())
+            {
+                cameras.push_back(camera);
+            } });
+
+        // If no cameras found, render black screen with FPS
+        if (cameras.empty())
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            DrawFPS(10, 10);
+            EndDrawing();
+            return true;
+        }
+
+        // Separate cameras into those with render targets and those without
+        std::vector<std::shared_ptr<Camera>> renderTargetCameras;
+        std::vector<std::shared_ptr<Camera>> screenCameras;
+
+        for (auto &camera : cameras)
+        {
+            auto renderTarget = camera->GetRenderTarget();
+            if (renderTarget && renderTarget->IsValid())
+            {
+                renderTargetCameras.push_back(camera);
+            }
+            else
+            {
+                screenCameras.push_back(camera);
+            }
+        }
+
+        // First, render all cameras that have render targets
+        for (auto &camera : renderTargetCameras)
+        {
+            renderCameraToTarget(camera);
+        }
+
+        // Then render cameras that don't have render targets directly to screen
+        // For multiple screen cameras, we'll render them in order (last one wins for now)
+        // In the future, this could be extended to support multiple viewports
         BeginDrawing();
         ClearBackground(BLACK);
+
+        for (auto &camera : screenCameras)
+        {
+            renderCameraToScreen(camera);
+        }
+
+        // Also render any render target cameras to screen (if they have postprocessing effects)
+        for (auto &camera : renderTargetCameras)
+        {
+            auto renderTarget = camera->GetRenderTarget();
+            applyPostprocessEffects(camera, renderTarget->GetTexture());
+        }
+
         DrawFPS(10, 10);
-        auto client = GetClient();
-        if (client && client->ActiveCamera != nullptr && client->ActiveCamera->GetEntity() != nullptr)
-        {
-            beginMode3D(client->ActiveCamera);
-            client->Root->Traverse<MeshRenderer>([this](const std::shared_ptr<MeshRenderer> &meshRenderer)
-                                                 {
-                if (meshRenderer->Enabled)
-                {
-                    renderModel(meshRenderer);
-                } });
-            EndMode3D();
-        }
-
-        beginMode2D();
-
-        // Collect and batch sprites by texture and material for instanced rendering
-        struct SpriteBatchKey
-        {
-            unsigned int textureId;
-            std::shared_ptr<SpriteMaterial> material;
-
-            bool operator==(const SpriteBatchKey &other) const
-            {
-                return textureId == other.textureId && material == other.material;
-            }
-        };
-
-        struct SpriteBatchKeyHash
-        {
-            std::size_t operator()(const SpriteBatchKey &k) const
-            {
-                return std::hash<unsigned int>()(k.textureId) ^ (std::hash<std::shared_ptr<SpriteMaterial>>()(k.material) << 1);
-            }
-        };
-
-        std::unordered_map<SpriteBatchKey, std::vector<SpriteInstanceData>, SpriteBatchKeyHash> spriteBatches;
-
-        if (client)
-        {
-            client->Root->Traverse<SpriteRenderer>([&spriteBatches](const std::shared_ptr<SpriteRenderer> &spriteRenderer)
-                                                   {
-            if (spriteRenderer->Enabled && spriteRenderer->Sprite != nullptr && 
-                spriteRenderer->Sprite->GetTexture() != nullptr)
-            {
-                unsigned int textureId = spriteRenderer->Sprite->GetTexture()->texture.id;
-                auto entity = spriteRenderer->GetEntity();
-                if (!entity) return;
-                Vector3 worldPos = entity->GetWorldPosition();
-                Vector3 scale = entity->GetWorldScale();
-                float rotation = entity->GetWorldRotation().Euler().z * RAD2DEG;
-                
-                SpriteBatchKey key{textureId, spriteRenderer->Sprite};
-                spriteBatches[key].push_back(SpriteInstanceData{
-                    worldPos,
-                    scale, 
-                    rotation,
-                    spriteRenderer->Pivot,
-                    spriteRenderer
-                });
-            } });
-        }
-
-        // Render each texture+material batch as instanced quads
-        for (const auto &batch : spriteBatches)
-        {
-            renderSpriteBatch(batch.first.textureId, batch.first.material, batch.second);
-        }
-
-        endMode2D();
-
         EndDrawing();
+
         return true;
     }
 
@@ -387,5 +389,189 @@ namespace Tsubasa
 
         // Disable shader
         rlSetShader(rlGetShaderIdDefault(), rlGetShaderLocsDefault());
+    }
+
+    void RaylibRenderSystem::applyPostprocessEffects(std::shared_ptr<Camera> camera, ::Texture2D sourceTexture)
+    {
+        const auto& effects = camera->GetPostprocessEffects();
+        
+        if (effects.empty())
+        {
+            // No effects, just draw the source texture directly
+            DrawTextureRec(sourceTexture, Rectangle{0, 0, (float)sourceTexture.width, -(float)sourceTexture.height}, ::Vector2{0, 0}, WHITE);
+            return;
+        }
+
+        // For single effect, apply directly to screen
+        if (effects.size() == 1)
+        {
+            auto& effect = effects[0];
+            if (effect && effect->GetShader() && effect->GetShader()->IsValid())
+            {
+                effect->Apply(sourceTexture);
+            }
+            else
+            {
+                DrawTextureRec(sourceTexture, Rectangle{0, 0, (float)sourceTexture.width, -(float)sourceTexture.height}, ::Vector2{0, 0}, WHITE);
+            }
+            return;
+        }
+
+        // For multiple effects, create intermediate render textures for chaining
+        std::vector<::RenderTexture2D> intermediateTextures;
+        
+        // Create intermediate textures (one less than number of effects since last renders to screen)
+        for (size_t i = 0; i < effects.size() - 1; i++)
+        {
+            intermediateTextures.push_back(LoadRenderTexture(sourceTexture.width, sourceTexture.height));
+        }
+
+        ::Texture2D currentTexture = sourceTexture;
+        
+        for (size_t i = 0; i < effects.size(); i++)
+        {
+            auto& effect = effects[i];
+            if (!effect || !effect->GetShader() || !effect->GetShader()->IsValid())
+            {
+                continue;
+            }
+
+            bool isLastEffect = (i == effects.size() - 1);
+            
+            if (!isLastEffect)
+            {
+                // Render to intermediate texture
+                BeginTextureMode(intermediateTextures[i]);
+                ClearBackground({0, 0, 0, 0});
+                effect->Apply(currentTexture);
+                EndTextureMode();
+                
+                // Update current texture for next iteration
+                currentTexture = intermediateTextures[i].texture;
+            }
+            else
+            {
+                // Last effect renders directly to screen
+                effect->Apply(currentTexture);
+            }
+        }
+
+        // Clean up intermediate textures
+        for (auto& texture : intermediateTextures)
+        {
+            UnloadRenderTexture(texture);
+        }
+    }
+
+    void RaylibRenderSystem::renderCameraToTarget(std::shared_ptr<Camera> camera)
+    {
+        auto client = GetClient();
+        if (!client)
+            return;
+
+        auto renderTarget = camera->GetRenderTarget();
+        if (!renderTarget || !renderTarget->IsValid())
+            return;
+
+        // Begin rendering to render target
+        renderTarget->Begin();
+        ClearBackground(BLACK);
+
+        // 3D rendering
+        beginMode3D(camera);
+        client->Root->Traverse<MeshRenderer>([this](const std::shared_ptr<MeshRenderer> &meshRenderer)
+                                             {
+            if (meshRenderer->Enabled)
+            {
+                renderModel(meshRenderer);
+            } });
+        EndMode3D();
+
+        // 2D rendering
+        beginMode2D();
+        renderSprites();
+        endMode2D();
+
+        // End rendering to target
+        renderTarget->End();
+    }
+
+    void RaylibRenderSystem::renderCameraToScreen(std::shared_ptr<Camera> camera)
+    {
+        auto client = GetClient();
+        if (!client)
+            return;
+
+        // 3D rendering
+        beginMode3D(camera);
+        client->Root->Traverse<MeshRenderer>([this](const std::shared_ptr<MeshRenderer> &meshRenderer)
+                                             {
+            if (meshRenderer->Enabled)
+            {
+                renderModel(meshRenderer);
+            } });
+        EndMode3D();
+
+        // 2D rendering
+        beginMode2D();
+        renderSprites();
+        endMode2D();
+    }
+
+    void RaylibRenderSystem::renderSprites()
+    {
+        auto client = GetClient();
+        if (!client)
+            return;
+
+        // Collect and batch sprites by texture and material for instanced rendering
+        struct SpriteBatchKey
+        {
+            unsigned int textureId;
+            std::shared_ptr<SpriteMaterial> material;
+
+            bool operator==(const SpriteBatchKey &other) const
+            {
+                return textureId == other.textureId && material == other.material;
+            }
+        };
+
+        struct SpriteBatchKeyHash
+        {
+            std::size_t operator()(const SpriteBatchKey &k) const
+            {
+                return std::hash<unsigned int>()(k.textureId) ^ (std::hash<std::shared_ptr<SpriteMaterial>>()(k.material) << 1);
+            }
+        };
+
+        std::unordered_map<SpriteBatchKey, std::vector<SpriteInstanceData>, SpriteBatchKeyHash> spriteBatches;
+
+        client->Root->Traverse<SpriteRenderer>([&spriteBatches](const std::shared_ptr<SpriteRenderer> &spriteRenderer)
+                                               {
+        if (spriteRenderer->Enabled && spriteRenderer->Sprite != nullptr &&
+            spriteRenderer->Sprite->GetTexture() != nullptr)
+        {
+            unsigned int textureId = spriteRenderer->Sprite->GetTexture()->texture.id;
+            auto entity = spriteRenderer->GetEntity();
+            if (!entity) return;
+            Vector3 worldPos = entity->GetWorldPosition();
+            Vector3 scale = entity->GetWorldScale();
+            float rotation = entity->GetWorldRotation().Euler().z * RAD2DEG;
+
+            SpriteBatchKey key{textureId, spriteRenderer->Sprite};
+            spriteBatches[key].push_back(SpriteInstanceData{
+                worldPos,
+                scale,
+                rotation,
+                spriteRenderer->Pivot,
+                spriteRenderer
+            });
+        } });
+
+        // Render each texture+material batch as instanced quads
+        for (const auto &batch : spriteBatches)
+        {
+            renderSpriteBatch(batch.first.textureId, batch.first.material, batch.second);
+        }
     }
 }
